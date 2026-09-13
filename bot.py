@@ -1,43 +1,26 @@
-import requests
 import os
 from flask import Flask, request
 
 app = Flask(__name__)
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 
-PHONE_NUMBER_ID = "1281300705072739" 
-ACCESS_TOKEN = "2732798583785111"
+@app.route('/', methods=['GET'])
+def home():
+    return "Bot ya NENO LA TUMAINI iko Live ✅", 200
 
-def send_whatsapp_message(to, text):
-    url = f"https://graph.facebook.com/v20.0/{PHONE_NUMBER_ID}/messages"
-    headers = {
-        "Authorization": f"Bearer {ACCESS_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "text",
-        "text": {"body": text}
-    }
-    requests.post(url, headers=headers, json=data)
+@app.route('/webhook', methods=['GET'])
+def verify():
+    token = request.args.get('hub.verify_token')
+    challenge = request.args.get('hub.challenge')
+    if token == VERIFY_TOKEN:
+        return challenge, 200
+    return "Verification failed", 403
 
-@app.route("/webhook", methods=["GET", "POST"])
+@app.route('/webhook', methods=['POST'])
 def webhook():
-    if request.method == "GET":
-        return request.args.get("hub.challenge")
-    
     data = request.get_json()
-    try:
-        message = data["entry"][0]["changes"][0]["value"]["messages"][0]
-        from_number = message["from"]
-        msg_body = message["text"]["body"]
-
-        reply = f"Neno la Tumaini kwako leo: \n\nMungu ni kimbilio na nguvu yako. Usife moyo, yeye yupo pamoja nawe. 🙏"
-        send_whatsapp_message(from_number, reply)
-
-    except Exception as e:
-        print(e)
-    return "ok"
+    print("Message mpya:", data)
+    return "ok", 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host='0.0.0.0', port=os.environ.get('PORT', 5000))
